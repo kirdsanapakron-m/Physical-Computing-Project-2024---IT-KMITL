@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Ra(สุริยเทพรา)</title>
+    <link rel="stylesheet" href="styles.css">
+    
+</head>
+<body>
+    <header>
+        <h1> Ra(สุริยเทพรา)</h1>
+        <nav>
+            <a href="#introduction">Abstract</a>
+            <a href="#components">Components</a>
+            <a href="#sourcecode">Source Code</a>
+            <a href="#photo-album">Photo Album</a>
+            <a href="#members">Project Team</a>
+        </nav>
+    </header>
+
+    <section id="introduction" class="container">
+        <h2>Abstract</h2>
+        <p>โปรเจคนี้นำเสนอการพัฒนาระบบการติดตามแสงอาทิตย์โดยใช้ LDR Photoresistor Sensor ในการตรวจจับแสง และใช้ Servo ในการควบคุมการหมุนของแท่น Solar Cell ให้สามารถหมุนตามทิศทางของแสงอาทิตย์ได้อย่างอัตโนมัติ โดยระบบใช้ ACS712 Current Sensor สำหรับตรวจวัดกระแสไฟฟ้าที่เกิดขึ้นจากแผง Solar Cell และเชื่อมต่อกับแอปพลิเคชัน Blynk เพื่อแสดงผลการวัดกระแสไฟฟ้าแบบเรียลไทม์ การทำงานของระบบประกอบด้วยเซ็นเซอร์ตรวจจับทิศทางของแสงซึ่งจะส่งสัญญาณไปยัง Arduino เพื่อควบคุมการหมุนของมอเตอร์ให้แผง Solar Cell หันรับแสงได้อย่างมีประสิทธิภาพ ระบบนี้สามารถเพิ่มประสิทธิภาพการผลิตพลังงานไฟฟ้าจากแสงอาทิตย์และให้ข้อมูลสถานะของกระแสไฟฟ้าผ่านแอปพลิเคชัน ทำให้ผู้ใช้สามารถติดตามและปรับปรุงการทำงานของระบบได้อย่างสะดวก</p>
+        <br>
+        <h2>Project Video</h2>
+        <div class="video-container">
+            <iframe width="560" height="315" src="https://www.youtube.com/embed/ASzsnJds84o" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </section>
+
+    <section id="components" class="container">
+        <h2>Components</h2>
+        <div class="components">
+            <div class="card">
+                <img src="IMG/LDR.png" alt="LDR Photoresistor Sensor">
+                <h3>LDR Photoresistor Sensor</h3>
+            </div>
+            <div class="card">
+                <img src="IMG/SERVO.png" alt="SG90 Micro Servo">
+                <h3>SG90 Micro Servo</h3>
+            </div>
+            <div class="card">
+                <img src="IMG/ASC.png" alt="Current Sensor ACS712-05A">
+                <h3>Current Sensor ACS712-05A</h3>
+            </div>
+            <div class="card">
+                <img src="IMG/UNO.png" alt="Arduino Uno R4 WiFi">
+                <h3>Arduino Uno R4 WiFi</h3>
+            </div>
+            <div class="card">
+                <img src="IMG/SOLAR.png" alt="Mini Solar Cell">
+                <h3>Mini Solar Cell 4V 60 mA</h3>
+            </div>
+        </div>  
+    </section>
+    
+    <section id="sourcecode" class="container">
+        <h2>Source Code</h2>
+        <div class="code-block">
+            <pre><code>
+                #define BLYNK_TEMPLATE_ID           "Never"
+                #define BLYNK_TEMPLATE_NAME         "gonna"
+                #define BLYNK_AUTH_TOKEN            "give you up"
+                #include <Servo.h>
+                #include <SPI.h>
+                #include <WiFiS3.h>
+                #include <BlynkSimpleWifi.h>
+                #define BLYNK_PRINT Serial
+                #define solar  A5
+
+                Servo servobot;
+                Servo servotop;
+                int servob = 0;
+                int servot = 0; 
+                int ldrtopl = A0; 
+                int ldrtopr = A1;
+                int ldrbotl = A2;
+                int ldrbotr = A3; 
+                
+                unsigned long sensorValue = 0;
+                char ssid[] = "never";
+                char pass[] = "let you down";
+                int a = 50;
+                int b = 60;
+                BlynkTimer timer;
+                void setup() 
+                {
+                    Serial.begin(9600);
+                    pinMode(solar, INPUT_PULLUP);
+                    servob = 10;
+                    servobot.attach(10);
+                    servobot.write(servob);
+                    servot = 75;
+                    servotop.attach(9); 
+                    servotop.write(servot);
+                    delay(500);
+                    Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+                    timer.setInterval(1000L, sendVoltageToBlynk);
+                }
+                void sendVoltageToBlynk() {
+                    sensorValue = analogRead(solar); 
+                    float voltage = sensorValue * (5.0 / 1023.0);
+                    Serial.print("Voltage: ");
+                    Serial.println(voltage);
+                    Blynk.virtualWrite(V1, voltage);
+                }
+                void loop() {
+                    int topl = analogRead(ldrtopl); 
+                    int topr = analogRead(ldrtopr);
+                    int botl = analogRead(ldrbotl);
+                    int botr = analogRead(ldrbotr);
+
+                    Blynk.run();
+                    timer.run();
+
+                    int avgtop = (topl + topr) / 2;
+                    int avgbot = (botl + botr) / 2;
+                    int avgleft = (topl + botl) / 2;
+                    int avgright = (topr + botr) / 2;
+
+                    if (avgbot > avgtop) {
+                        if (servot < 140) {
+                        servot = servot - 3;
+                        servotop.write(servot);
+                        delay(50);
+                        }
+                    } 
+
+                    else if (avgtop > avgbot) {
+                        if (servot > 10) {
+                        servot = servot + 3;
+                        servotop.write(servot);
+                        delay(50);
+                        }
+                    }
+
+                    if (avgleft > avgright) {
+                        servob = servob + 3;
+                        servobot.write(servob);
+                        delay(50);
+                    } 
+                    
+                    else if (avgleft < avgright) {
+                        servob = servob - 3;
+                        servobot.write(servob);
+                        delay(50);
+                    }
+                }
+            </code></pre>
+            </div>
+    </section>
+
+    <section id="photo-album" class="container">
+        <h2>Photo Album</h2>
+        <div class="photo-album-wrapper">
+            <button id="prevBtn" class="nav-button">❮</button>
+            <div class="photo-album">
+                <img src="IMG/photo1-re.png" alt="Photo 1">
+                <img src="IMG/photo2-re.png" alt="Photo 2">
+                <img src="IMG/photo4-re.png" alt="Photo 3">
+                <img src="IMG/photo3-re.png" alt="Photo 4">
+            </div>
+            <button id="nextBtn" class="nav-button">❯</button>
+        </div>
+    </section>
+
+    <section id="members" class="container">
+        <h2>Project Team</h2>
+        <div class="members">
+            <div class="card">
+                <img src="IMG/006.png" alt="memeber1">
+                <h3>นาย กฤษณปกรณ์ เมรัตน์</h3>
+                <p>รหัสนักศึกษา :66070006</p>
+            </div>
+            <div class="card">
+            <img src="IMG/031.png" alt="memeber2">
+                <h3>นาย เจษฎา ข้องหลิม</h3>
+                <p>รหัสนักศึกษา : 66070033</p>
+            </div>
+            <div class="card">
+                <img src="IMG/055.png" alt="memeber3">
+                <h3>นาย ณฐกร หอมพันนา</h3>
+                <p>รหัสนักศึกษา : 66070055</p>
+            </div>
+            <div class="card">
+                <img src="IMG/071.png" alt="memeber4">
+                <h3>นาย ธนกฤต สุนประชา</h3>
+                <p>รหัสนักศึกษา : 66070071</p>
+            </div>
+        </div>
+    </section>
+    <script>
+        const photos = document.querySelectorAll('.photo-album img');
+        let currentIndex = 0;
+    
+        function updatePhotos() {
+            photos.forEach((photo, index) => {
+                photo.classList.toggle('active', index === currentIndex);
+            });
+        }
+    
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            currentIndex = (currentIndex > 0) ? currentIndex - 1 : photos.length - 1;
+            updatePhotos();
+        });
+    
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            currentIndex = (currentIndex < photos.length - 1) ? currentIndex + 1 : 0;
+            updatePhotos();
+        });
+        updatePhotos();
+    </script>
+</body>
+</html>
